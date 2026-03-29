@@ -564,14 +564,18 @@ function confirmSkin(){goToMap();}
    =================================================== */
 function goToMap(){
   const p=cp();if(!p){goToScreen('screen-players');return;}
-  if(!p.progressBase||p.progressBase.length!==BASE_PHASES.length)p.progressBase=BASE_PHASES.map((_,i)=>({stars:0,unlocked:i===0}));
+  // Garantir estrutura de progresso íntegra
+  if(!p.progressBase||p.progressBase.length!==BASE_PHASES.length){
+    p.progressBase=BASE_PHASES.map((_,i)=>({stars:0,unlocked:i===0}));
+  }
   if(!p.progressCustom)p.progressCustom={};
+  save(); // persistir antes de renderizar
   const skin=SKINS.find(s=>s.id===p.skinId)||SKINS[0];
   document.getElementById('badge-skin').textContent=skin.emoji;
   document.getElementById('badge-name').textContent=p.name;
   document.getElementById('badge-stars').textContent=totalStars(p)+' ⭐';
   document.getElementById('map-pixel').innerHTML=heroHTML(skin.emoji);
-  renderMap();
+  renderMap(); // re-renderiza com dados mais recentes
   goToScreen('screen-map');
   floatBtn(false);
 }
@@ -586,7 +590,13 @@ function renderMap(){
   const phases=allPhases();
   document.getElementById('world-map').innerHTML=phases.map((ph,i)=>{
     const isBase=!!ph.builtin;
-    const prog=isBase?(p.progressBase[i]||{stars:0,unlocked:i===0}):(p.progressCustom[ph.id]||{stars:0,unlocked:true});
+    let prog;
+    if(isBase){
+      const baseIdx=BASE_PHASES.findIndex(b=>b.id===ph.id);
+      prog=(p.progressBase&&p.progressBase[baseIdx])||{stars:0,unlocked:baseIdx===0};
+    }else{
+      prog=(p.progressCustom&&p.progressCustom[ph.id])||{stars:0,unlocked:true};
+    }
     const unlocked=!!prog.unlocked;
     const stars=prog.stars||0;
     const completed=stars>=3;
@@ -814,31 +824,46 @@ function wrong(){
 function completePhase(){
   const p=cp();if(!p)return;
   const idx=ST.currentPhaseIdx;
-  const ph=allPhases()[idx];
+  const phases=allPhases();
+  const ph=phases[idx];
   const isBase=!!ph.builtin;
   const errs=SESSION.total-SESSION.correct;
   const stars=errs===0?3:errs<=2?2:1;
 
+  // --- Garantir que progressBase está inicializado corretamente ---
+  if(!p.progressBase||p.progressBase.length!==BASE_PHASES.length){
+    p.progressBase=BASE_PHASES.map((_,i)=>({stars:0,unlocked:i===0}));
+  }
+  if(!p.progressCustom)p.progressCustom={};
+
   if(isBase){
-    if(!p.progressBase)p.progressBase=BASE_PHASES.map((_,i)=>({stars:0,unlocked:i===0}));
-    if(stars>(p.progressBase[idx].stars||0))p.progressBase[idx].stars=stars;
-    // Desbloquear próxima fase base
-    if(idx+1<BASE_PHASES.length){
-      if(!p.progressBase[idx+1])p.progressBase[idx+1]={stars:0,unlocked:false};
-      p.progressBase[idx+1].unlocked=true;
+    // Salvar estrelas (só atualiza se for maior que o anterior)
+    const baseIdx=BASE_PHASES.findIndex(b=>b.id===ph.id);
+    if(baseIdx>=0){
+      if(!p.progressBase[baseIdx])p.progressBase[baseIdx]={stars:0,unlocked:baseIdx===0};
+      if(stars>(p.progressBase[baseIdx].stars||0))p.progressBase[baseIdx].stars=stars;
+      // Desbloquear próxima fase base
+      const next=baseIdx+1;
+      if(next<BASE_PHASES.length){
+        if(!p.progressBase[next])p.progressBase[next]={stars:0,unlocked:false};
+        p.progressBase[next].unlocked=true;
+      }
     }
   }else{
-    if(!p.progressCustom)p.progressCustom={};
     if(stars>((p.progressCustom[ph.id]||{}).stars||0))p.progressCustom[ph.id]={stars,unlocked:true};
   }
   save();
 
-  const phases=allPhases();
+  // --- Atualizar badge do mapa imediatamente ---
+  document.getElementById('badge-stars').textContent=totalStars(p)+' ⭐';
+
+  // --- Preencher tela de conclusão ---
   document.getElementById('complete-stars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
   document.getElementById('complete-title').textContent=`${ph.name} concluída!`;
   document.getElementById('complete-msg').textContent=rnd(['Incrível! Pixel está muito feliz! 🤩','Que trabalho maravilhoso! 🌟','Você arrasou! 🚀','Parabéns! Mais um bloco reconstruído! 🏗️']);
   document.getElementById('complete-score').textContent=`Acertou ${SESSION.correct} de ${SESSION.total} perguntas! 🎉`;
 
+  // --- Botão próxima fase ---
   const btnNext=document.getElementById('btn-next-phase');
   const nextIdx=idx+1;
   if(nextIdx<phases.length){
