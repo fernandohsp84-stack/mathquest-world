@@ -357,6 +357,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear
     <div class="btn-row">
       <button class="btn btn-primary"   id="btn-next-phase">Próxima Fase →</button>
       <button class="btn btn-secondary btn-sm" onclick="goToMap()">🗺️ Mapa</button>
+      <button class="btn btn-danger btn-sm" onclick="restartPhase()">🔄 Repetir</button>
     </div>
   </div>
 </div>
@@ -703,6 +704,7 @@ function loadQuestion(){
 function renderSeq(q,area){
   const grid=document.createElement('div');grid.className='sequence-grid';
   let next=1;
+  let erros=0;
   q.shuffled.forEach(n=>{
     const btn=document.createElement('button');btn.className='seq-btn';btn.textContent=n;
     btn.onclick=()=>{
@@ -710,8 +712,17 @@ function renderSeq(q,area){
       if(n===next){
         btn.classList.add('selected');btn.disabled=true;next++;
         playTone(400+next*22,.1,'sine',.12);
-        if(next>20){SESSION.answered=true;setTimeout(()=>correct(),300);}
+        if(next>20){
+          SESSION.answered=true;
+          SESSION.correct=5;
+          SESSION.total=5+erros;
+          setMood('happy');
+          showFb(true,'Sequ\u00eancia completa! Incr\u00edvel! \ud83c\udf89');
+          playSuccess();spawnStars();
+          setTimeout(()=>{hideFeedback();completePhase();},1600);
+        }
       }else{
+        erros++;
         btn.classList.add('wrong-seq');setMood('sad');playWrong();
         showFb(false,`Ops! O próximo é o ${next}.`);
         setTimeout(()=>{btn.classList.remove('wrong-seq');hideFeedback();setMood('normal');},1300);
@@ -876,6 +887,10 @@ function completePhase(){
 
   playVictory();
   goToScreen('screen-complete');
+}
+
+function restartPhase(){
+  openPhase(ST.currentPhaseIdx);
 }
 
 function showWin(){
