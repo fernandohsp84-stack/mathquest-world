@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MathQuest World — Aventura com Pixel!</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   VARIÁVEIS GLOBAIS E RESET
+   ============================================================ */
+:root {
+  --azul:       #1E3A5F;
+  --azul-med:   #2E5F9E;
+  --azul-claro: #5B9BD5;
+  --laranja:    #FF7043;
+  --laranja-cl: #FFAB91;
+  --verde:      #4CAF50;
+  --verde-cl:   #A5D6A7;
+  --amarelo:    #FFD54F;
+  --amarelo-cl: #FFF9C4;
+  --roxo:       #7B52AB;
+  --rosa:       #EC407A;
+  --ciano:      #26C6DA;
+  --branco:     #FAFAFA;
+  --cinza-cl:   #F0F4F8;
+  --cinza:      #90A4AE;
+  --texto:      #1A2B3C;
+  --sombra:     rgba(30,58,95,0.18);
+  --font-base:  18px;
+  --radius:     18px;
+  --radius-lg:  28px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: var(–font-base); }
+
+body {
+font-family: ‘Nunito’, sans-serif;
+background: var(–cinza-cl);
+color: var(–texto);
+min-height: 100vh;
+overflow-x: hidden;
+position: relative;
+}
+
+/* –– Fundo com textura de blocos suave –– */
+body::before {
+content: ‘’;
+position: fixed; inset: 0; z-index: 0;
+background-image:
+linear-gradient(rgba(91,155,213,0.06) 1px, transparent 1px),
+linear-gradient(90deg, rgba(91,155,213,0.06) 1px, transparent 1px);
+background-size: 40px 40px;
+pointer-events: none;
+}
+
+/* ============================================================
+CONTROLES DE FONTE (acessibilidade)
+============================================================ */
+#font-controls {
+position: fixed; top: 12px; right: 12px; z-index: 1000;
+display: flex; gap: 6px;
+}
+.font-btn {
+width: 42px; height: 42px;
+border-radius: 50%; border: 2px solid var(–azul-med);
+background: white; color: var(–azul); font-weight: 800;
+font-size: 1rem; cursor: pointer;
+box-shadow: 0 2px 8px var(–sombra);
+transition: transform 0.15s, background 0.15s;
+display: flex; align-items: center; justify-content: center;
+}
+.font-btn:hover { background: var(–azul-claro); color: white; transform: scale(1.1); }
+
+/* ============================================================
+TELAS (screens)
+============================================================ */
+.screen {
+position: relative; z-index: 1;
+min-height: 100vh;
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: flex-start;
+padding: 20px 16px 40px;
+animation: fadeIn 0.5s ease;
+}
+.screen.active { display: flex; }
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(16px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+TELA INICIAL — MAPA DO MUNDO
+============================================================ */
+#screen-map {
+background: linear-gradient(160deg, #E8F4FD 0%, #D6EAF8 40%, #EAF5EA 100%);
+}
+
+.game-title {
+font-family: ‘Baloo 2’, cursive;
+font-size: clamp(2rem, 6vw, 3.2rem);
+font-weight: 800;
+color: var(–azul);
+text-align: center;
+line-height: 1.1;
+margin-top: 10px;
+text-shadow: 0 3px 0 rgba(30,58,95,0.12);
+}
+.game-subtitle {
+font-size: 1rem;
+color: var(–azul-med);
+text-align: center;
+margin: 4px 0 20px;
+font-weight: 600;
+}
+
+/* –– Pixel Character (SVG inline) –– */
+.pixel-hero {
+width: 90px; height: 90px;
+margin: 0 auto 8px;
+animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+0%,100% { transform: translateY(0); }
+50%      { transform: translateY(-10px); }
+}
+
+/* –– Mapa das Fases –– */
+.world-map {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 12px;
+width: 100%; max-width: 520px;
+margin: 0 auto;
+}
+.zone-card {
+background: white;
+border-radius: var(–radius);
+padding: 14px 12px;
+box-shadow: 0 4px 16px var(–sombra);
+cursor: pointer;
+border: 3px solid transparent;
+transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+position: relative;
+overflow: hidden;
+}
+.zone-card::before {
+content: ‘’;
+position: absolute; inset: 0;
+opacity: 0.08;
+border-radius: var(–radius);
+}
+.zone-card:hover:not(.locked) { transform: translateY(-4px); box-shadow: 0 8px 24px var(–sombra); }
+.zone-card.locked { opacity: 0.55; cursor: not-allowed; }
+.zone-card.completed { border-color: var(–verde); }
+.zone-card.current  { border-color: var(–laranja); animation: pulse-border 1.8s ease-in-out infinite; }
+
+@keyframes pulse-border {
+0%,100% { border-color: var(–laranja); box-shadow: 0 4px 16px var(–sombra); }
+50%      { border-color: var(–amarelo); box-shadow: 0 4px 24px rgba(255,212,79,0.5); }
+}
+
+.zone-emoji  { font-size: 2rem; display: block; margin-bottom: 4px; }
+.zone-name   { font-family: ‘Baloo 2’, cursive; font-size: 0.9rem; font-weight: 700; color: var(–azul); line-height: 1.2; }
+.zone-topic  { font-size: 0.75rem; color: var(–cinza); font-weight: 600; margin-top: 2px; }
+.zone-stars  { margin-top: 6px; font-size: 1rem; letter-spacing: 2px; }
+.zone-lock   { position: absolute; top: 8px; right: 10px; font-size: 1.1rem; }
+
+/* –– Botão principal –– */
+.btn-primary {
+background: linear-gradient(135deg, var(–laranja), #FF5722);
+color: white;
+border: none; border-radius: 50px;
+padding: 16px 36px;
+font-family: ‘Baloo 2’, cursive;
+font-size: 1.1rem; font-weight: 700;
+cursor: pointer;
+box-shadow: 0 6px 20px rgba(255,112,67,0.4);
+transition: transform 0.15s, box-shadow 0.15s;
+min-height: 60px;
+letter-spacing: 0.5px;
+}
+.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,112,67,0.5); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+background: white;
+color: var(–azul);
+border: 2px solid var(–azul-claro);
+border-radius: 50px;
+padding: 14px 28px;
+font-family: ‘Baloo 2’, cursive;
+font-size: 1rem; font-weight: 700;
+cursor: pointer;
+transition: all 0.15s;
+min-height: 60px;
+}
+.btn-secondary:hover { background: var(–azul); color: white; }
+
+/* ============================================================
+TELA DE FASE — INTRO
+============================================================ */
+#screen-intro {
+justify-content: center;
+}
+
+.intro-card {
+background: white;
+border-radius: var(–radius-lg);
+padding: 36px 28px;
+max-width: 460px; width: 100%;
+text-align: center;
+box-shadow: 0 8px 40px var(–sombra);
+animation: scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes scaleIn {
+from { transform: scale(0.85); opacity: 0; }
+to   { transform: scale(1);    opacity: 1; }
+}
+
+.intro-biome-emoji { font-size: 4rem; display: block; margin-bottom: 8px; }
+.intro-phase-num {
+font-family: ‘Baloo 2’, cursive;
+font-size: 0.85rem; font-weight: 700;
+color: var(–azul-claro); text-transform: uppercase; letter-spacing: 2px;
+}
+.intro-title {
+font-family: ‘Baloo 2’, cursive;
+font-size: 1.8rem; font-weight: 800;
+color: var(–azul); margin: 6px 0 12px;
+}
+.intro-desc {
+font-size: 1rem; color: #4A6580; line-height: 1.6;
+margin-bottom: 24px;
+}
+.intro-goal {
+background: var(–amarelo-cl);
+border-left: 4px solid var(–amarelo);
+border-radius: 12px;
+padding: 12px 16px;
+font-size: 0.95rem; font-weight: 700;
+color: var(–azul); text-align: left;
+margin-bottom: 28px;
+}
+
+/* ============================================================
+TELA DE JOGO
+============================================================ */
+#screen-game {
+background: linear-gradient(160deg, #E8F4FD 0%, #EAF5EA 100%);
+padding-top: 0;
+}
+
+/* –– Header da fase –– */
+.game-header {
+width: 100%; max-width: 580px;
+background: white;
+border-radius: 0 0 var(–radius-lg) var(–radius-lg);
+padding: 14px 20px 18px;
+box-shadow: 0 4px 20px var(–sombra);
+margin-bottom: 20px;
+display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.game-header-top {
+width: 100%; display: flex; align-items: center; justify-content: space-between;
+}
+.phase-label {
+font-family: ‘Baloo 2’, cursive;
+font-size: 0.85rem; font-weight: 700;
+color: var(–azul-med); text-transform: uppercase; letter-spacing: 1.5px;
+}
+.phase-biome-icon { font-size: 1.4rem; }
+
+/* Barra de progresso */
+.progress-bar-wrap {
+width: 100%; background: var(–cinza-cl); border-radius: 99px; height: 14px;
+overflow: hidden;
+}
+.progress-bar-fill {
+height: 100%;
+background: linear-gradient(90deg, var(–verde), #81C784);
+border-radius: 99px;
+transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.progress-label { font-size: 0.8rem; color: var(–cinza); font-weight: 600; align-self: flex-end; }
+
+/* –– Área central do jogo –– */
+.game-area {
+width: 100%; max-width: 580px;
+display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+
+/* –– Pixel no jogo –– */
+.pixel-game-wrap {
+position: relative;
+width: 80px; height: 80px;
+}
+.pixel-game {
+width: 80px; height: 80px;
+transition: transform 0.3s;
+}
+.pixel-game.celebrate { animation: celebrate 0.6s ease; }
+.pixel-game.sad       { animation: sad 0.6s ease; }
+
+@keyframes celebrate {
+0%   { transform: scale(1) rotate(0deg); }
+30%  { transform: scale(1.3) rotate(-10deg); }
+60%  { transform: scale(1.2) rotate(10deg); }
+100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes sad {
+0%,100% { transform: translateX(0); }
+20%,60% { transform: translateX(-6px); }
+40%,80% { transform: translateX(6px); }
+}
+
+/* –– Card da pergunta –– */
+.question-card {
+background: white;
+border-radius: var(–radius-lg);
+padding: 28px 24px;
+width: 100%;
+box-shadow: 0 6px 28px var(–sombra);
+text-align: center;
+animation: fadeIn 0.35s ease;
+}
+.question-context {
+font-size: 0.85rem; color: var(–azul-claro);
+font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+margin-bottom: 8px;
+}
+.question-text {
+font-family: ‘Baloo 2’, cursive;
+font-size: clamp(1.3rem, 4vw, 1.9rem);
+font-weight: 800; color: var(–azul);
+line-height: 1.3; margin-bottom: 6px;
+}
+.question-hint {
+font-size: 0.9rem; color: var(–cinza); font-weight: 600;
+margin-bottom: 4px;
+}
+
+/* –– Feedback banner –– */
+.feedback-banner {
+width: 100%; border-radius: var(–radius);
+padding: 14px 20px; text-align: center;
+font-family: ‘Baloo 2’, cursive; font-size: 1.1rem; font-weight: 700;
+opacity: 0; transform: translateY(10px);
+transition: all 0.3s ease;
+pointer-events: none;
+}
+.feedback-banner.show { opacity: 1; transform: translateY(0); }
+.feedback-banner.correct { background: var(–verde-cl); color: #2E7D32; }
+.feedback-banner.wrong   { background: var(–amarelo-cl); color: #E65100; }
+
+/* –– Opções de resposta –– */
+.options-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+gap: 12px; width: 100%;
+}
+.option-btn {
+background: white;
+border: 3px solid var(–azul-claro);
+border-radius: var(–radius);
+padding: 18px 12px;
+font-family: ‘Baloo 2’, cursive;
+font-size: 1.3rem; font-weight: 800;
+color: var(–azul); cursor: pointer;
+transition: all 0.2s;
+min-height: 70px;
+box-shadow: 0 3px 10px var(–sombra);
+}
+.option-btn:hover   { background: var(–azul); color: white; transform: translateY(-3px); box-shadow: 0 6px 18px var(–sombra); }
+.option-btn.correct { background: var(–verde); color: white; border-color: var(–verde); transform: scale(1.06); }
+.option-btn.wrong   { background: var(–amarelo-cl); color: var(–laranja); border-color: var(–laranja); }
+.option-btn:disabled { cursor: not-allowed; }
+
+/* –– Input numérico (fase 4) –– */
+.input-wrap {
+display: flex; gap: 12px; align-items: center; justify-content: center; width: 100%;
+}
+.answer-input {
+font-family: ‘Baloo 2’, cursive;
+font-size: 2rem; font-weight: 800;
+color: var(–azul); text-align: center;
+border: 3px solid var(–azul-claro);
+border-radius: var(–radius);
+padding: 12px 16px; width: 140px;
+outline: none;
+box-shadow: inset 0 2px 6px rgba(0,0,0,0.06);
+-webkit-appearance: none;
+appearance: none;
+background: white;
+}
+.answer-input:focus { border-color: var(–laranja); }
+
+/* –– Fase 1: sequência de números –– */
+.sequence-grid {
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 10px; width: 100%;
+}
+.seq-btn {
+background: white;
+border: 3px solid var(–azul-claro);
+border-radius: 14px;
+padding: 14px 4px;
+font-family: ‘Baloo 2’, cursive;
+font-size: 1.2rem; font-weight: 800;
+color: var(–azul); cursor: pointer;
+transition: all 0.18s;
+min-height: 60px;
+box-shadow: 0 2px 8px var(–sombra);
+}
+.seq-btn:hover:not(:disabled) { background: var(–azul-claro); color: white; transform: scale(1.08); }
+.seq-btn.selected  { background: var(–verde); color: white; border-color: var(–verde); }
+.seq-btn.wrong-seq { background: var(–amarelo-cl); color: var(–laranja); border-color: var(–laranja); animation: shake 0.4s ease; }
+.seq-btn:disabled  { cursor: not-allowed; }
+
+@keyframes shake {
+0%,100% { transform: translateX(0); }
+25%,75%  { transform: translateX(-4px); }
+50%      { transform: translateX(4px); }
+}
+
+/* ============================================================
+TELA DE CONCLUSÃO DE FASE
+============================================================ */
+#screen-complete {
+justify-content: center;
+background: linear-gradient(160deg, #FFF8E1 0%, #E8F5E9 100%);
+}
+
+.complete-card {
+background: white;
+border-radius: var(–radius-lg);
+padding: 40px 28px;
+max-width: 440px; width: 100%;
+text-align: center;
+box-shadow: 0 10px 50px var(–sombra);
+animation: scaleIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.complete-stars { font-size: 2.5rem; margin-bottom: 10px; animation: starsIn 0.6s 0.3s both; }
+@keyframes starsIn {
+from { transform: scale(0) rotate(-30deg); }
+to   { transform: scale(1) rotate(0deg); }
+}
+.complete-title {
+font-family: ‘Baloo 2’, cursive;
+font-size: 2rem; font-weight: 800;
+color: var(–azul); margin-bottom: 8px;
+}
+.complete-msg { font-size: 1rem; color: #4A6580; line-height: 1.6; margin-bottom: 28px; }
+.complete-score {
+background: var(–amarelo-cl);
+border-radius: var(–radius);
+padding: 14px 20px; margin-bottom: 24px;
+font-family: ‘Baloo 2’, cursive;
+font-size: 1.1rem; font-weight: 700; color: var(–azul);
+}
+
+/* ============================================================
+TELA DE VITÓRIA FINAL
+============================================================ */
+#screen-win {
+justify-content: center;
+background: linear-gradient(135deg, #1E3A5F 0%, #2E5F9E 50%, #1B5E20 100%);
+overflow: hidden;
+}
+#screen-win::after {
+content: ‘🎉🌟✨🎊🏆🌟🎉✨🎊🌟’;
+position: fixed; top: -60px; left: 0; right: 0;
+font-size: 2rem; text-align: center; letter-spacing: 10px;
+animation: confetti 3s linear infinite;
+pointer-events: none; z-index: 10;
+}
+@keyframes confetti {
+from { transform: translateY(-80px); opacity: 1; }
+to   { transform: translateY(110vh); opacity: 0; }
+}
+
+.win-card {
+background: white; border-radius: var(–radius-lg);
+padding: 44px 28px; max-width: 440px; width: 100%;
+text-align: center;
+box-shadow: 0 16px 60px rgba(0,0,0,0.3);
+position: relative; z-index: 5;
+animation: scaleIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+.win-trophy { font-size: 5rem; display: block; animation: float 2s ease-in-out infinite; margin-bottom: 12px; }
+.win-title {
+font-family: ‘Baloo 2’, cursive;
+font-size: 2.2rem; font-weight: 800; color: var(–azul); margin-bottom: 10px;
+}
+.win-msg { font-size: 1rem; color: #4A6580; line-height: 1.6; margin-bottom: 28px; }
+
+/* ============================================================
+SEPARADOR / UTILITÁRIOS
+============================================================ */
+.gap-sm { margin-top: 10px; }
+.gap-md { margin-top: 16px; }
+.gap-lg { margin-top: 24px; }
+
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* –– Estrelas animadas de acerto –– */
+.star-burst {
+position: fixed; pointer-events: none; z-index: 999;
+font-size: 1.8rem;
+animation: starFloat 1s ease forwards;
+}
+@keyframes starFloat {
+0%   { transform: translateY(0) scale(0.5); opacity: 1; }
+100% { transform: translateY(-80px) scale(1.2); opacity: 0; }
+}
+
+/* ============================================================
+BARRA DE ESTRELAS TOTAL (no mapa)
+============================================================ */
+.total-stars-bar {
+background: white; border-radius: var(–radius);
+padding: 10px 20px; margin-bottom: 16px;
+display: flex; align-items: center; gap: 10px;
+box-shadow: 0 2px 10px var(–sombra);
+font-family: ‘Baloo 2’, cursive; font-weight: 700; color: var(–azul);
+font-size: 0.95rem;
+}
+.total-stars-bar span { font-size: 1.1rem; }
+
+/* ============================================================
+RESPONSIVIDADE
+============================================================ */
+@media (max-width: 400px) {
+.world-map { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.sequence-grid { grid-template-columns: repeat(4, 1fr); }
+.options-grid  { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 600px) {
+.world-map { grid-template-columns: repeat(2, 1fr); max-width: 560px; }
+}
+
+/* Botão Mapa */
+.btn-map {
+position: fixed; bottom: 20px; left: 20px; z-index: 500;
+background: white; border: 2px solid var(–azul-claro);
+border-radius: 50px; padding: 10px 18px;
+font-family: ‘Baloo 2’, cursive; font-size: 0.9rem; font-weight: 700;
+color: var(–azul); cursor: pointer;
+box-shadow: 0 4px 16px var(–sombra);
+transition: all 0.15s;
+display: none;
+}
+.btn-map.visible { display: flex; align-items: center; gap: 6px; }
+.btn-map:hover { background: var(–azul); color: white; }
+</style>
+
+</head>
+<body>
+
+<!-- ============================================================
+     CONTROLES DE ACESSIBILIDADE
+     ============================================================ -->
+
+<div id="font-controls">
+  <button class="font-btn" onclick="changeFont(-1)" title="Diminuir fonte">A−</button>
+  <button class="font-btn" onclick="changeFont(1)"  title="Aumentar fonte">A+</button>
+</div>
+
+<!-- Botão flutuante: voltar ao mapa -->
+
+<button id="btn-map-float" class="btn-map" onclick="goToMap()">🗺️ Mapa</button>
+
+<!-- ============================================================
+     TELA 1: MAPA DO MUNDO
+     ============================================================ -->
+
+<div id="screen-map" class="screen active">
+
+  <!-- Pixel Hero -->
+
+  <div class="pixel-hero">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- Corpo -->
+      <rect x="25" y="35" width="50" height="45" rx="10" fill="#5B9BD5"/>
+      <rect x="30" y="40" width="40" height="30" rx="6" fill="#7EC8E3"/>
+      <!-- Cabeça -->
+      <rect x="22" y="10" width="56" height="46" rx="14" fill="#5B9BD5"/>
+      <!-- Olhos (grandes, estilo PIXAR) -->
+      <circle cx="37" cy="28" r="11" fill="white"/>
+      <circle cx="63" cy="28" r="11" fill="white"/>
+      <circle cx="39" cy="29" r="7" fill="#1E3A5F"/>
+      <circle cx="65" cy="29" r="7" fill="#1E3A5F"/>
+      <circle cx="41" cy="27" r="2.5" fill="white"/>
+      <circle cx="67" cy="27" r="2.5" fill="white"/>
+      <!-- Boca sorridente -->
+      <path d="M38 42 Q50 50 62 42" stroke="#1E3A5F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Antena -->
+      <line x1="50" y1="10" x2="50" y2="2" stroke="#FF7043" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="50" cy="1" r="4" fill="#FFD54F"/>
+      <!-- Braços -->
+      <rect x="7"  y="45" width="18" height="10" rx="5" fill="#5B9BD5"/>
+      <rect x="75" y="45" width="18" height="10" rx="5" fill="#5B9BD5"/>
+      <!-- Pernas -->
+      <rect x="32" y="76" width="14" height="16" rx="5" fill="#2E5F9E"/>
+      <rect x="54" y="76" width="14" height="16" rx="5" fill="#2E5F9E"/>
+      <!-- Pés -->
+      <rect x="29" y="88" width="20" height="8" rx="4" fill="#1E3A5F"/>
+      <rect x="51" y="88" width="20" height="8" rx="4" fill="#1E3A5F"/>
+    </svg>
+  </div>
+
+  <h1 class="game-title">MathQuest World</h1>
+  <p class="game-subtitle">A aventura matemática do Pixel! 🚀</p>
+
+  <!-- Barra de estrelas total -->
+
+  <div class="total-stars-bar">
+    <span>⭐</span>
+    <span id="total-stars-display">0 de 30 estrelas conquistadas</span>
+  </div>
+
+  <!-- Mapa de fases -->
+
+  <div class="world-map" id="world-map"></div>
+
+  <div class="gap-md">
+    <button class="btn-secondary" onclick="resetGame()" style="font-size:0.85rem; padding:10px 20px; min-height:48px;">
+      🔄 Recomeçar do zero
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     TELA 2: INTRO DA FASE
+     ============================================================ -->
+
+<div id="screen-intro" class="screen">
+  <div class="intro-card">
+    <span class="intro-biome-emoji" id="intro-emoji"></span>
+    <div class="intro-phase-num" id="intro-phase-num"></div>
+    <h2 class="intro-title" id="intro-title"></h2>
+    <p  class="intro-desc"   id="intro-desc"></p>
+    <div class="intro-goal"  id="intro-goal"></div>
+    <button class="btn-primary" onclick="startPhase()" style="width:100%">
+      Vamos lá! 🚀
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     TELA 3: JOGO
+     ============================================================ -->
+
+<div id="screen-game" class="screen">
+
+  <div class="game-header">
+    <div class="game-header-top">
+      <span class="phase-label" id="game-phase-label"></span>
+      <span class="phase-biome-icon" id="game-biome-icon"></span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <span class="progress-label" id="progress-label">0 / 5 certas</span>
+  </div>
+
+  <div class="game-area">
+
+```
+<!-- Pixel no jogo -->
+<div class="pixel-game-wrap">
+  <svg id="pixel-face" class="pixel-game" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="22" y="10" width="56" height="56" rx="14" fill="#5B9BD5"/>
+    <circle cx="37" cy="35" r="11" fill="white"/>
+    <circle cx="63" cy="35" r="11" fill="white"/>
+    <circle id="eye-l" cx="39" cy="36" r="7" fill="#1E3A5F"/>
+    <circle id="eye-r" cx="65" cy="36" r="7" fill="#1E3A5F"/>
+    <circle cx="41" cy="34" r="2.5" fill="white"/>
+    <circle cx="67" cy="34" r="2.5" fill="white"/>
+    <path id="pixel-mouth" d="M38 50 Q50 59 62 50" stroke="#1E3A5F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <line x1="50" y1="10" x2="50" y2="2" stroke="#FF7043" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="50" cy="1" r="4" fill="#FFD54F"/>
+  </svg>
+</div>
+
+<!-- Feedback -->
+<div class="feedback-banner" id="feedback-banner"></div>
+
+<!-- Card da pergunta -->
+<div class="question-card" id="question-card">
+  <div class="question-context" id="q-context"></div>
+  <div class="question-text"   id="q-text"></div>
+  <div class="question-hint"   id="q-hint"></div>
+
+  <!-- Área de respostas (muda por fase) -->
+  <div id="answer-area" class="gap-md"></div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ============================================================
+     TELA 4: FASE CONCLUÍDA
+     ============================================================ -->
+
+<div id="screen-complete" class="screen">
+  <div class="complete-card">
+    <div class="complete-stars" id="complete-stars"></div>
+    <h2 class="complete-title" id="complete-title"></h2>
+    <p  class="complete-msg"   id="complete-msg"></p>
+    <div class="complete-score" id="complete-score"></div>
+    <div class="btn-row">
+      <button class="btn-primary"   id="btn-next-phase" onclick="nextPhase()">Próxima Fase →</button>
+      <button class="btn-secondary" onclick="goToMap()">🗺️ Ver Mapa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TELA 5: VITÓRIA FINAL
+     ============================================================ -->
+
+<div id="screen-win" class="screen">
+  <div class="win-card">
+    <span class="win-trophy">🏆</span>
+    <h1 class="win-title">Parabéns!</h1>
+    <p class="win-msg">
+      Pixel reconstruiu todo o seu mundo de blocos!<br>
+      Você completou todas as <strong>10 fases</strong> e conquistou todas as estrelas!<br><br>
+      Você é um verdadeiro <strong>Mestre da Matemática</strong>! 🌟
+    </p>
+    <div class="complete-score">🌟 30 de 30 estrelas conquistadas! 🌟</div>
+    <button class="btn-primary" onclick="goToMap()" style="width:100%">🗺️ Ver meu Mapa</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT DO JOGO
+     ============================================================ -->
+
+<script>
+/* ============================================================
+   DADOS DAS FASES
+   ============================================================ */
+const PHASES = [
+  {
+    id: 1,
+    emoji: '🏘️',
+    name: 'Aldeia dos Números',
+    topic: 'Sequência 1–20',
+    desc: 'Pixel chegou à Aldeia dos Números! Os blocos da aldeia foram embaralhados. Ele precisa da sua ajuda para colocá-los na ordem certa.',
+    goal: '🎯 Objetivo: toque nos números de 1 a 20 em ordem!',
+    type: 'sequence',
+    biomeColor: '#E3F2FD'
+  },
+  {
+    id: 2,
+    emoji: '💎',
+    name: 'Minas de Cristal',
+    topic: 'Adição até 20',
+    desc: 'Nas Minas de Cristal, Pixel precisa combinar cristais para abrir as portas mágicas. Cada porta tem um número secreto!',
+    goal: '🎯 Objetivo: resolva as adições e escolha a resposta certa!',
+    type: 'mcq',
+    biomeColor: '#E8EAF6'
+  },
+  {
+    id: 3,
+    emoji: '🌳',
+    name: 'Floresta do Eco',
+    topic: 'Subtração até 20',
+    desc: 'Na Floresta do Eco, animaizinhos ficaram presos! Para libertá-los, Pixel precisa equilibrar as balanças mágicas.',
+    goal: '🎯 Objetivo: resolva as subtrações e escolha a resposta certa!',
+    type: 'mcq',
+    biomeColor: '#E8F5E9'
+  },
+  {
+    id: 4,
+    emoji: '🏰',
+    name: 'Torre dos Pares',
+    topic: 'Adição e subtração até 50',
+    desc: 'A Torre dos Pares tem elevadores mágicos! Para subir cada andar, Pixel precisa calcular o número exato do elevador.',
+    goal: '🎯 Objetivo: calcule e DIGITE a resposta no teclado!',
+    type: 'input',
+    biomeColor: '#FFF3E0'
+  },
+  {
+    id: 5,
+    emoji: '🏝️',
+    name: 'Ilha da Multiplicação',
+    topic: 'Tabuadas 2, 3, 5 e 10',
+    desc: 'Na Ilha da Multiplicação, os campos de plantio são feitos de grades de blocos. Pixel precisa calcular quantos blocos cabem em cada campo!',
+    goal: '🎯 Objetivo: resolva as multiplicações e escolha a resposta certa!',
+    type: 'mcq',
+    biomeColor: '#F1F8E9'
+  },
+  {
+    id: 6,
+    emoji: '🪨',
+    name: 'Cavernas do Espelho',
+    topic: 'Divisão básica',
+    desc: 'Nas Cavernas do Espelho, os recursos precisam ser divididos igualmente entre os personagens. Ajude Pixel a fazer uma divisão justa!',
+    goal: '🎯 Objetivo: resolva as divisões e escolha a resposta certa!',
+    type: 'mcq',
+    biomeColor: '#F3E5F5'
+  },
+  {
+    id: 7,
+    emoji: '🏜️',
+    name: 'Deserto das Frações',
+    topic: 'Metade, terço e quarto',
+    desc: 'No Deserto das Frações, Pixel precisa dividir a água dos oásis entre todos. Cada parte precisa ser igual!',
+    goal: '🎯 Objetivo: calcule frações simples e escolha a resposta certa!',
+    type: 'mcq',
+    biomeColor: '#FFF8E1'
+  },
+  {
+    id: 8,
+    emoji: '🌆',
+    name: 'Cidade Flutuante',
+    topic: 'Geometria básica',
+    desc: 'A Cidade Flutuante é feita de formas geométricas! Para construir as estruturas, Pixel precisa reconhecer cada forma e contar seus lados.',
+    goal: '🎯 Objetivo: identifique as formas geométricas e seus lados!',
+    type: 'mcq',
+    biomeColor: '#E3F2FD'
+  },
+  {
+    id: 9,
+    emoji: '🌊',
+    name: 'Oceano das Medidas',
+    topic: 'Comparação de medidas',
+    desc: 'No Oceano das Medidas, o submarino do Pixel usa instrumentos que medem tudo! Ele precisa comparar medidas para navegar com segurança.',
+    goal: '🎯 Objetivo: compare medidas e escolha a maior ou a menor!',
+    type: 'mcq',
+    biomeColor: '#E0F7FA'
+  },
+  {
+    id: 10,
+    emoji: '🏯',
+    name: 'Castelo do Código',
+    topic: 'Problemas mistos',
+    desc: 'O Castelo do Código é a última fronteira! Para libertar o mundo de blocos, Pixel precisa resolver problemas usando tudo que aprendeu.',
+    goal: '🎯 Objetivo: leia o problema e escolha a resposta correta!',
+    type: 'mcq',
+    biomeColor: '#FCE4EC'
+  }
+];
+
+/* ============================================================
+   ESTADO DO JOGO
+   ============================================================ */
+let gameState = {
+  currentPhase: 0,   // índice 0–9
+  phaseProgress: [],  // { correct: 0, total: 0, stars: 0 } por fase
+  fontScale: 1
+};
+
+/* ============================================================
+   INICIALIZAÇÃO
+   ============================================================ */
+function init() {
+  loadProgress();
+  renderMap();
+  updateTotalStars();
+}
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem('mathquest-progress');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.phaseProgress && data.phaseProgress.length === 10) {
+        gameState.phaseProgress = data.phaseProgress;
+        return;
+      }
+    }
+  } catch(e) {}
+  gameState.phaseProgress = PHASES.map(() => ({ stars: 0, unlocked: false }));
+  gameState.phaseProgress[0].unlocked = true;
+  saveProgress();
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem('mathquest-progress', JSON.stringify({
+      phaseProgress: gameState.phaseProgress
+    }));
+  } catch(e) {}
+}
+
+function resetGame() {
+  if (!confirm('Tem certeza? O progresso será apagado!')) return;
+  localStorage.removeItem('mathquest-progress');
+  loadProgress();
+  renderMap();
+  updateTotalStars();
+  playTone(220, 0.15, 'sine');
+}
+
+/* ============================================================
+   RENDER DO MAPA
+   ============================================================ */
+function renderMap() {
+  const map = document.getElementById('world-map');
+  map.innerHTML = '';
+  PHASES.forEach((phase, i) => {
+    const prog = gameState.phaseProgress[i];
+    const isUnlocked = prog.unlocked || i === 0;
+    const isCompleted = prog.stars >= 3;
+    const isNext = isUnlocked && !isCompleted;
+
+    const card = document.createElement('div');
+    card.className = `zone-card ${isCompleted ? 'completed' : ''} ${isNext && !isCompleted ? 'current' : ''} ${!isUnlocked ? 'locked' : ''}`;
+    card.style.setProperty('--zone-color', phase.biomeColor);
+
+    const stars = '⭐'.repeat(prog.stars) + '☆'.repeat(3 - prog.stars);
+    card.innerHTML = `
+      <span class="zone-emoji">${phase.emoji}</span>
+      <div class="zone-name">Fase ${i+1}: ${phase.name}</div>
+      <div class="zone-topic">${phase.topic}</div>
+      <div class="zone-stars">${stars}</div>
+      ${!isUnlocked ? '<span class="zone-lock">🔒</span>' : ''}
+    `;
+
+    if (isUnlocked) {
+      card.onclick = () => openPhase(i);
+    }
+    map.appendChild(card);
+  });
+}
+
+function updateTotalStars() {
+  const total = gameState.phaseProgress.reduce((sum, p) => sum + (p.stars || 0), 0);
+  document.getElementById('total-stars-display').textContent = `${total} de 30 estrelas conquistadas`;
+}
+
+/* ============================================================
+   ABERTURA DE FASE
+   ============================================================ */
+function openPhase(idx) {
+  gameState.currentPhase = idx;
+  const phase = PHASES[idx];
+
+  document.getElementById('intro-emoji').textContent    = phase.emoji;
+  document.getElementById('intro-phase-num').textContent = `Fase ${idx+1} de 10`;
+  document.getElementById('intro-title').textContent    = phase.name;
+  document.getElementById('intro-desc').textContent     = phase.desc;
+  document.getElementById('intro-goal').textContent     = phase.goal;
+
+  showScreen('screen-intro');
+  document.getElementById('btn-map-float').classList.add('visible');
+  playTone(440, 0.1, 'sine');
+}
+
+/* ============================================================
+   ESTADO DA FASE ATUAL
+   ============================================================ */
+let phaseSession = {
+  correct: 0,
+  total: 0,
+  streak: 0,
+  answeredThisQ: false,
+  currentQ: null
+};
+
+function startPhase() {
+  phaseSession = { correct: 0, total: 0, streak: 0, answeredThisQ: false, currentQ: null };
+  const phase = PHASES[gameState.currentPhase];
+
+  document.getElementById('game-phase-label').textContent = `Fase ${gameState.currentPhase+1}: ${phase.name}`;
+  document.getElementById('game-biome-icon').textContent  = phase.emoji;
+  updateProgressBar();
+
+  showScreen('screen-game');
+  loadQuestion();
+}
+
+function updateProgressBar() {
+  const pct = (phaseSession.correct / 5) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${phaseSession.correct} / 5 certas`;
+}
+
+/* ============================================================
+   GERADOR DE PERGUNTAS POR FASE
+   ============================================================ */
+function generateQuestion(phaseIdx) {
+  const r = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+
+  switch(phaseIdx) {
+    // ---- Fase 1: Sequência ---- (tratada separadamente)
+    case 0: return generateSequenceQ();
+
+    // ---- Fase 2: Adição até 20 ----
+    case 1: {
+      const a = r(1,10), b = r(1,10 - a + 1);
+      const ans = a + b;
+      return { text: `${a} + ${b} = ?`, answer: ans, options: makeOptions(ans, 1, 20), hint: 'Some os dois números.' };
+    }
+
+    // ---- Fase 3: Subtração até 20 ----
+    case 2: {
+      const a = r(5,20), b = r(1, a);
+      const ans = a - b;
+      return { text: `${a} − ${b} = ?`, answer: ans, options: makeOptions(ans, 0, 19), hint: 'Tire o segundo número do primeiro.' };
+    }
+
+    // ---- Fase 4: Adição/Subtração até 50 (input) ----
+    case 3: {
+      const ops = ['+', '−'];
+      const op = ops[r(0,1)];
+      let a, b, ans;
+      if (op === '+') { a = r(10,40); b = r(1,50-a); ans = a+b; }
+      else            { a = r(10,50); b = r(1,a);     ans = a-b; }
+      return { text: `${a} ${op} ${b} = ?`, answer: ans, hint: `${op==='+' ? 'Some' : 'Subtraia'} os números.` };
+    }
+
+    // ---- Fase 5: Tabuadas 2, 3, 5, 10 ----
+    case 4: {
+      const tables = [2,3,5,10];
+      const t = tables[r(0,3)];
+      const n = r(1,10);
+      const ans = t * n;
+      return { text: `${t} × ${n} = ?`, answer: ans, options: makeOptions(ans, 2, 100), hint: `Tabuada do ${t}.` };
+    }
+
+    // ---- Fase 6: Divisão ----
+    case 5: {
+      const divs = [2,3,4,5,6,10];
+      const d = divs[r(0,5)];
+      const q = r(1,10);
+      const num = d * q;
+      return { text: `${num} ÷ ${d} = ?`, answer: q, options: makeOptions(q, 1, 15), hint: 'Divida igualmente.' };
+    }
+
+    // ---- Fase 7: Frações ----
+    case 6: {
+      const fracs = [
+        { frac:'metade', div:2, nums:[4,6,8,10,12,14,16,18,20] },
+        { frac:'terço',  div:3, nums:[3,6,9,12,15,18] },
+        { frac:'quarto', div:4, nums:[4,8,12,16,20] }
+      ];
+      const f = fracs[r(0,2)];
+      const num = f.nums[r(0,f.nums.length-1)];
+      const ans = num / f.div;
+      return {
+        text: `Qual é a ${f.frac} de ${num}?`,
+        answer: ans,
+        options: makeOptions(ans, 1, 10),
+        hint: `Divida ${num} por ${f.div}.`
+      };
+    }
+
+    // ---- Fase 8: Geometria ----
+    case 7: {
+      const shapes = [
+        { name:'Triângulo', sides:3, emoji:'🔺' },
+        { name:'Quadrado',  sides:4, emoji:'🟦' },
+        { name:'Retângulo', sides:4, emoji:'▬' },
+        { name:'Pentágono', sides:5, emoji:'⬠' },
+        { name:'Hexágono',  sides:6, emoji:'⬡' },
+        { name:'Círculo',   sides:0, emoji:'⭕' }
+      ];
+      const s = shapes[r(0,shapes.length-1)];
+      const qs = [
+        { text: `${s.emoji} Quantos lados tem o ${s.name}?`, answer: s.sides },
+        { text: `Qual forma tem ${s.sides} lados?`, answer: s.name }
+      ];
+      const q = qs[0];
+      // sempre perguntar lados (mais simples)
+      const ans = s.sides;
+      const opts = ans === 0
+        ? [{ val:0,label:'0'},{val:3,label:'3'},{val:4,label:'4'}]
+        : makeOptions(ans, 0, 8);
+      return { text: `${s.emoji} Quantos lados tem o ${s.name}?`, answer: ans, options: opts, hint: 'Conte os lados da figura.' };
+    }
+
+    // ---- Fase 9: Medidas ----
+    case 8: {
+      const pairs = [
+        { a:'50 cm', b:'1 m',   aVal:50,   bVal:100,  unit:'comprimento' },
+        { a:'2 kg',  b:'500 g', aVal:2000, bVal:500,  unit:'peso' },
+        { a:'1 L',   b:'250 ml',aVal:1000, bVal:250,  unit:'volume' },
+        { a:'3 m',   b:'200 cm',aVal:300,  bVal:200,  unit:'comprimento' },
+        { a:'1 km',  b:'800 m', aVal:1000, bVal:800,  unit:'distância' },
+        { a:'2 L',   b:'1500 ml',aVal:2000,bVal:1500, unit:'volume' },
+      ];
+      const p = pairs[r(0,pairs.length-1)];
+      const askMaior = r(0,1) === 1;
+      const correct = askMaior
+        ? (p.aVal > p.bVal ? p.a : p.b)
+        : (p.aVal < p.bVal ? p.a : p.b);
+      return {
+        text: `Qual é ${askMaior ? 'MAIOR' : 'MENOR'}?\n${p.a}  ou  ${p.b}`,
+        answer: correct,
+        options: [
+          { val: p.a, label: p.a },
+          { val: p.b, label: p.b },
+          { val: askMaior ? (p.aVal <= p.bVal ? p.a : p.b) : (p.aVal >= p.bVal ? p.a : p.b), label: '⚖️ Iguais' }
+        ],
+        hint: `Compare as unidades de ${p.unit}.`
+      };
+    }
+
+    // ---- Fase 10: Problemas mistos ----
+    case 9: return generateWordProblem();
+  }
+}
+
+/* --- Gerador de sequência (fase 1) --- */
+function generateSequenceQ() {
+  const start = Math.floor(Math.random() * 5) * 4 + 1; // 1, 5, 9, 13, 17
+  const nums = Array.from({length: 20}, (_, i) => i+1);
+  // embaralhar
+  const shuffled = [...nums].sort(() => Math.random() - 0.5);
+  return { type: 'sequence', nums: nums, shuffled: shuffled };
+}
+
+/* --- Problemas de texto (fase 10) --- */
+function generateWordProblem() {
+  const r = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const problems = [
+    () => { const a=r(5,15),b=r(3,10); return { text:`Pixel coletou ${a} estrelas de ouro e ${b} estrelas de prata. Quantas estrelas tem ao todo?`, answer:a+b, hint:'Some as estrelas.' }; },
+    () => { const t=r(15,25),u=r(3,10); return { text:`Pixel tinha ${t} blocos e usou ${u} para construir uma casa. Quantos blocos sobraram?`, answer:t-u, hint:'Subtraia os blocos usados.' }; },
+    () => { const n=r(2,5),p=r(2,8); return { text:`Pixel tem ${n} sacolas com ${p} moedas em cada uma. Quantas moedas tem ao todo?`, answer:n*p, hint:`Multiplique ${n} × ${p}.` }; },
+    () => { const t=r(2,5),a=r(1,5); const tot=t*a; return { text:`${tot} cristais foram divididos igualmente entre ${t} amigos. Quantos cristais cada um recebeu?`, answer:a, hint:`Divida ${tot} por ${t}.` }; },
+    () => { const a=r(10,20),b=r(5,10); return { text:`Na Aldeia havia ${a} crianças brincando. ${b} foram para casa. Quantas ficaram?`, answer:a-b, hint:'Quantas sobraram?' }; },
+    () => { const n=r(3,6),p=r(10,20); const tot=n*p; return { text:`Cada bloco pesa ${p} gramas. Pixel carrega ${n} blocos. Qual é o peso total?`, answer:tot, hint:`Multiplique ${n} × ${p}.` }; },
+  ];
+  const prob = problems[r(0,problems.length-1)]();
+  return { ...prob, options: makeOptions(prob.answer, Math.max(1,prob.answer-10), prob.answer+10) };
+}
+
+/* --- Opções de múltipla escolha --- */
+function makeOptions(correct, min, max) {
+  const opts = new Set([correct]);
+  let attempts = 0;
+  while (opts.size < 3 && attempts < 50) {
+    const delta = Math.floor(Math.random() * 5) + 1;
+    const sign  = Math.random() > 0.5 ? 1 : -1;
+    const val   = Math.max(min, Math.min(max, correct + sign * delta));
+    if (val !== correct) opts.add(val);
+    attempts++;
+  }
+  // Se ainda precisar de mais
+  while (opts.size < 3) {
+    const v = correct + opts.size;
+    opts.add(v);
+  }
+  // Embaralhar
+  return [...opts].sort(() => Math.random()-0.5).map(v => ({ val: v, label: String(v) }));
+}
+
+/* ============================================================
+   CARREGAR PERGUNTA NA TELA
+   ============================================================ */
+function loadQuestion() {
+  phaseSession.answeredThisQ = false;
+  hideFeedback();
+
+  const phase = PHASES[gameState.currentPhase];
+  const q = generateQuestion(gameState.currentPhase);
+  phaseSession.currentQ = q;
+
+  document.getElementById('q-context').textContent = `${phase.emoji} ${phase.name}`;
+  document.getElementById('q-hint').textContent    = q.hint || '';
+  document.getElementById('q-text').textContent    = q.text || '';
+
+  const area = document.getElementById('answer-area');
+  area.innerHTML = '';
+
+  if (q.type === 'sequence') {
+    renderSequenceQuestion(q, area);
+    document.getElementById('q-text').textContent = 'Toque nos números de 1 a 20 em ordem!';
+    document.getElementById('q-hint').textContent = 'Começe pelo 1, depois o 2, depois o 3...';
+  } else if (phase.type === 'input') {
+    renderInputQuestion(area);
+  } else {
+    renderMCQQuestion(q, area);
+  }
+
+  setPixelMood('normal');
+  updateProgressBar();
+}
+
+/* --- Sequência --- */
+function renderSequenceQuestion(q, area) {
+  const grid = document.createElement('div');
+  grid.className = 'sequence-grid';
+  let nextExpected = 1;
+  let selected = [];
+
+  q.shuffled.forEach(num => {
+    const btn = document.createElement('button');
+    btn.className = 'seq-btn';
+    btn.textContent = num;
+    btn.dataset.num = num;
+    btn.onclick = () => {
+      if (phaseSession.answeredThisQ) return;
+      if (num === nextExpected) {
+        btn.classList.add('selected');
+        btn.disabled = true;
+        selected.push(num);
+        nextExpected++;
+        playTone(440 + nextExpected * 30, 0.1, 'sine');
+        if (nextExpected > 20) {
+          // Completou!
+          phaseSession.answeredThisQ = true;
+          setTimeout(() => handleCorrect(), 300);
+        }
+      } else {
+        btn.classList.add('wrong-seq');
+        setPixelMood('sad');
+        playTone(220, 0.15, 'sawtooth');
+        showFeedback(false, `Ops! O próximo número é ${nextExpected}.`);
+        setTimeout(() => { btn.classList.remove('wrong-seq'); hideFeedback(); setPixelMood('normal'); }, 1200);
+      }
+    };
+    grid.appendChild(btn);
+  });
+
+  area.appendChild(grid);
+}
+
+/* --- MCQ --- */
+function renderMCQQuestion(q, area) {
+  const grid = document.createElement('div');
+  grid.className = 'options-grid';
+
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt.label;
+    btn.onclick = () => {
+      if (phaseSession.answeredThisQ) return;
+      phaseSession.answeredThisQ = true;
+      // Desabilitar todos
+      grid.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+      if (String(opt.val) === String(q.answer)) {
+        btn.classList.add('correct');
+        handleCorrect();
+      } else {
+        btn.classList.add('wrong');
+        // Mostrar correta
+        grid.querySelectorAll('.option-btn').forEach(b => {
+          if (String(b.textContent) === String(q.answer)) b.classList.add('correct');
+        });
+        handleWrong();
+      }
+    };
+    grid.appendChild(btn);
+  });
+
+  area.appendChild(grid);
+}
+
+/* --- Input --- */
+function renderInputQuestion(area) {
+  const wrap = document.createElement('div');
+  wrap.className = 'input-wrap';
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'answer-input';
+  input.placeholder = '?';
+  input.min = 0; input.max = 999;
+  input.id = 'num-input';
+  // Safari iOS: evitar zoom
+  input.style.fontSize = '1.8rem';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-primary';
+  btn.textContent = '✓ OK';
+  btn.style.padding = '16px 24px';
+  btn.onclick = () => submitInput(input);
+
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitInput(input); });
+
+  wrap.appendChild(input);
+  wrap.appendChild(btn);
+  area.appendChild(wrap);
+
+  setTimeout(() => input.focus(), 300);
+}
+
+function submitInput(input) {
+  if (phaseSession.answeredThisQ) return;
+  const val = parseInt(input.value, 10);
+  if (isNaN(val)) {
+    input.style.borderColor = 'var(--laranja)';
+    setTimeout(() => { input.style.borderColor = ''; }, 800);
+    return;
+  }
+  phaseSession.answeredThisQ = true;
+  input.disabled = true;
+
+  if (val === phaseSession.currentQ.answer) {
+    input.style.borderColor = 'var(--verde)';
+    handleCorrect();
+  } else {
+    input.style.borderColor = 'var(--laranja)';
+    handleWrong();
+  }
+}
+
+/* ============================================================
+   LÓGICA DE ACERTO / ERRO
+   ============================================================ */
+function handleCorrect() {
+  phaseSession.correct++;
+  phaseSession.streak++;
+  phaseSession.total++;
+  setPixelMood('happy');
+  showFeedback(true, getCorrectMsg());
+  playSuccess();
+  spawnStars();
+  updateProgressBar();
+
+  setTimeout(() => {
+    hideFeedback();
+    if (phaseSession.correct >= 5) {
+      completePhase();
+    } else {
+      loadQuestion();
+    }
+  }, 1400);
+}
+
+function handleWrong() {
+  phaseSession.streak = 0;
+  phaseSession.total++;
+  setPixelMood('sad');
+  showFeedback(false, getWrongMsg());
+  playWrong();
+  updateProgressBar();
+
+  setTimeout(() => {
+    hideFeedback();
+    setPixelMood('normal');
+    phaseSession.answeredThisQ = false;
+    // Recarregar a mesma pergunta reformulada
+    loadQuestion();
+  }, 1800);
+}
+
+/* ============================================================
+   CONCLUSÃO DA FASE
+   ============================================================ */
+function completePhase() {
+  const idx = gameState.currentPhase;
+  const prog = gameState.phaseProgress[idx];
+
+  // Calcular estrelas: 5 certas garante 3 estrelas se poucos erros
+  const errQs = phaseSession.total - phaseSession.correct;
+  const stars = errQs === 0 ? 3 : errQs <= 2 ? 2 : 1;
+  if (stars > (prog.stars || 0)) prog.stars = stars;
+
+  // Desbloquear próxima fase
+  if (idx + 1 < 10) {
+    gameState.phaseProgress[idx + 1].unlocked = true;
+  }
+
+  saveProgress();
+  renderMap();
+  updateTotalStars();
+  showCompleteScreen(idx, stars);
+  playVictory();
+}
+
+function showCompleteScreen(idx, stars) {
+  const phase = PHASES[idx];
+  const msgs = [
+    'Incrível! Pixel está muito feliz com você! 🤩',
+    'Que trabalho maravilhoso! Continue assim! 🌟',
+    'Você arrasoou! Pixel já quer a próxima aventura! 🚀',
+    'Parabéns! Mais uma parte do mundo reconstruída! 🏗️',
+    'Fantástico! Pixel está orgulhoso de você! 💪'
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+
+  document.getElementById('complete-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  document.getElementById('complete-title').textContent = `${phase.name} concluída!`;
+  document.getElementById('complete-msg').textContent   = msg;
+  document.getElementById('complete-score').textContent =
+    `Você acertou ${phaseSession.correct} de ${phaseSession.total} perguntas! 🎉`;
+
+  const btnNext = document.getElementById('btn-next-phase');
+  if (idx + 1 >= 10) {
+    btnNext.textContent = '🏆 Ver Troféu!';
+    btnNext.onclick = () => showScreen('screen-win');
+  } else {
+    btnNext.textContent = `${PHASES[idx+1].emoji} Próxima Fase →`;
+    btnNext.onclick = () => openPhase(idx + 1);
+  }
+
+  showScreen('screen-complete');
+}
+
+function nextPhase() {} // tratado pelo botão
+
+/* ============================================================
+   FEEDBACK VISUAL
+   ============================================================ */
+function showFeedback(correct, msg) {
+  const banner = document.getElementById('feedback-banner');
+  banner.textContent = msg;
+  banner.className = `feedback-banner show ${correct ? 'correct' : 'wrong'}`;
+}
+function hideFeedback() {
+  document.getElementById('feedback-banner').className = 'feedback-banner';
+}
+
+function getCorrectMsg() {
+  const msgs = ['🎉 Correto! Muito bem!', '⭐ Acertou! Pixel está feliz!', '🌟 Ótimo! Continue assim!', '✅ Perfeito!', '🚀 Incrível! Você conseguiu!'];
+  return msgs[Math.floor(Math.random()*msgs.length)];
+}
+function getWrongMsg() {
+  const msgs = ['💛 Quase! Tente de novo!', '🟡 Não foi dessa vez... Vamos tentar!', '💛 Isso! Pense um pouquinho mais!', '🟡 Pixel acredita em você! Tente outra vez!'];
+  return msgs[Math.floor(Math.random()*msgs.length)];
+}
+
+/* ============================================================
+   PIXEL EXPRESSÕES
+   ============================================================ */
+function setPixelMood(mood) {
+  const face = document.getElementById('pixel-face');
+  const mouth = document.getElementById('pixel-mouth');
+  if (!face || !mouth) return;
+
+  face.classList.remove('celebrate', 'sad');
+
+  if (mood === 'happy') {
+    face.classList.add('celebrate');
+    mouth.setAttribute('d', 'M35 48 Q50 60 65 48');
+  } else if (mood === 'sad') {
+    face.classList.add('sad');
+    mouth.setAttribute('d', 'M38 55 Q50 47 62 55');
+  } else {
+    mouth.setAttribute('d', 'M38 50 Q50 59 62 50');
+  }
+}
+
+/* ============================================================
+   ESTRELAS (efeito visual)
+   ============================================================ */
+function spawnStars() {
+  const stars = ['⭐','🌟','✨','💫'];
+  for (let i = 0; i < 4; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'star-burst';
+      el.textContent = stars[Math.floor(Math.random()*stars.length)];
+      el.style.left  = (20 + Math.random() * 60) + '%';
+      el.style.top   = (30 + Math.random() * 40) + '%';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }, i * 150);
+  }
+}
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE TELAS
+   ============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goToMap() {
+  showScreen('screen-map');
+  renderMap();
+  updateTotalStars();
+  document.getElementById('btn-map-float').classList.remove('visible');
+}
+
+/* ============================================================
+   WEB AUDIO — SONS MUSICAIS SUAVES
+   ============================================================ */
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+
+function playTone(freq, duration, type='sine', vol=0.15) {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playSuccess() {
+  // Acorde alegre: Dó-Mi-Sol
+  [523, 659, 784].forEach((f, i) => setTimeout(() => playTone(f, 0.25, 'sine', 0.18), i * 100));
+}
+
+function playWrong() {
+  // Dois tons suaves descendentes
+  playTone(350, 0.2, 'sine', 0.12);
+  setTimeout(() => playTone(280, 0.25, 'sine', 0.1), 200);
+}
+
+function playVictory() {
+  // Fanfarra curta
+  [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.3, 'sine', 0.2), i*120));
+}
+
+/* ============================================================
+   ACESSIBILIDADE — TAMANHO DA FONTE
+   ============================================================ */
+let fontScale = 1;
+function changeFont(delta) {
+  fontScale = Math.max(0.85, Math.min(1.35, fontScale + delta * 0.1));
+  document.documentElement.style.fontSize = (fontScale * 18) + 'px';
+  playTone(440 + delta * 40, 0.1, 'sine', 0.1);
+}
+
+/* ============================================================
+   INICIAR
+   ============================================================ */
+init();
+
+// Desbloquear AudioContext no primeiro toque (iOS)
+document.addEventListener('touchstart', () => getAudioCtx(), { once: true });
+document.addEventListener('click',      () => getAudioCtx(), { once: true });
+</script>
+
+<!--
+=================================================================
+  📋 INSTRUÇÕES DE PUBLICAÇÃO NO GITHUB PAGES
+=================================================================
+
+  PASSO 1 — Criar o repositório
+  ─────────────────────────────
+  1. Acesse https://github.com e faça login (ou crie uma conta gratuita)
+  2. Clique em "New repository" (botão verde)
+  3. Nome do repositório: mathquest-world
+  4. Marque "Public"
+  5. NÃO marque "Add a README file"
+  6. Clique em "Create repository"
+
+  PASSO 2 — Enviar o arquivo
+  ──────────────────────────
+  1. Na página do repositório criado, clique em "uploading an existing file"
+  2. Arraste este arquivo "index.html" para a área de upload
+  3. No campo "Commit changes", escreva: "Adiciona jogo MathQuest World"
+  4. Clique em "Commit changes" (botão verde)
+
+  PASSO 3 — Ativar GitHub Pages
+  ──────────────────────────────
+  1. No repositório, clique em "Settings" (aba superior)
+  2. No menu lateral esquerdo, clique em "Pages"
+  3. Em "Source", selecione "Deploy from a branch"
+  4. Em "Branch", selecione "main" e pasta "/ (root)"
+  5. Clique em "Save"
+  6. Aguarde 1-2 minutos
+
+  PASSO 4 — Acessar o jogo
+  ─────────────────────────
+  🎮 URL do jogo:
+  https://[SEU-USUARIO-GITHUB].github.io/mathquest-world/
+
+  Substitua [SEU-USUARIO-GITHUB] pelo seu nome de usuário no GitHub.
+  Exemplo: se seu usuário é "joaosilva", a URL será:
+  https://joaosilva.github.io/mathquest-world/
+
+  💡 DICAS:
+  • Você pode compartilhar essa URL com professores e familiares
+  • O jogo funciona em qualquer dispositivo com navegador
+  • O progresso é salvo automaticamente no dispositivo
+  • Para atualizar o jogo, basta substituir o index.html no repositório
+
+=================================================================
+-->
+
+</body>
+</html>
