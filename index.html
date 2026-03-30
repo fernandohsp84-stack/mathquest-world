@@ -180,9 +180,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;
 
 /* OPÇÕES — sempre 3, alta visibilidade */
 .options-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-top:11px}
-.option-btn{background:#EFF4F8;border:3px solid var(–azul-cl);border-radius:var(–radius);padding:14px 6px;font-family:‘Baloo 2’,cursive;font-size:1.2rem;font-weight:800;color:var(–azul);cursor:pointer;transition:all .2s;min-height:66px;width:100%;display:flex;align-items:center;justify-content:center}
-.option-btn:hover:not(:disabled):not(.correct):not(.wrong){background:var(–azul-med);color:#fff;border-color:var(–azul-med);transform:translateY(-2px)}
-.option-btn.correct{background:var(–verde)!important;color:#fff!important;border-color:var(–verde)!important;transform:scale(1.05)}
+.option-btn{background:#fff;border:3px solid var(–azul-med);border-radius:var(–radius);padding:14px 6px;font-family:‘Baloo 2’,cursive;font-size:1.25rem;font-weight:800;color:var(–azul);cursor:pointer;transition:all .2s;min-height:68px;width:100%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,58,95,0.12)}
+.option-btn:hover:not(:disabled):not(.correct):not(.wrong){background:var(–azul-med);color:#fff;border-color:var(–azul-med);transform:translateY(-2px);box-shadow:0 5px 14px rgba(30,58,95,0.2)}
+.option-btn.correct{background:var(–verde)!important;color:#fff!important;border-color:var(–verde)!important;transform:scale(1.05);box-shadow:0 4px 14px rgba(46,158,79,0.4)!important}
 .option-btn.wrong{background:#FFF0CC!important;color:#7A5000!important;border-color:var(–amarelo)!important}
 .option-btn:disabled{cursor:not-allowed}
 
@@ -977,10 +977,43 @@ function genQ(idx, type){
       };
     }
     case 'input':{
-      var op=R(0,1)?'+':'−';var a,b,ans;
+      var op=R(0,1)?'+':'\u2212';var a,b,ans;
       if(op==='+'){a=R(10,40);b=R(1,50-a);ans=a+b;}
       else{a=R(15,50);b=R(1,a);ans=a-b;}
-      return{answer:ans,text:a+' '+op+' '+b+' = ?',hint:'Use o teclado para digitar.',type:'input'};
+      var isAdd=op==='+';
+      return{answer:ans,text:a+' '+op+' '+b+' = ?',hint:'Veja os blocos e use o teclado!',type:'input',
+        visual:function(el){
+          // Visual: two rows of colored blocks representing the numbers
+          var maxShow=20;
+          var aShow=Math.min(a,maxShow);
+          var bShow=Math.min(b,maxShow);
+          var html='<div style="padding:6px 0">';
+          // Row A - blue blocks
+          html+='<div style="margin-bottom:6px">';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.76rem;font-weight:700;color:var(--azul-med);margin-bottom:4px">'+
+            (isAdd?'Grupo azul: '+a+(a>maxShow?' (mostrando '+maxShow+')':''):a+' blocos')+'</div>';
+          html+='<div style="display:flex;flex-wrap:wrap;gap:3px;padding:6px;background:#E3F0FB;border-radius:10px">';
+          for(var i=0;i<aShow;i++){
+            html+='<div style="width:22px;height:22px;background:var(--azul-med);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#fff;font-weight:700">'+(i+1)+'</div>';
+          }
+          if(a>maxShow) html+='<div style="font-size:.75rem;color:var(--cinza);font-weight:700;align-self:center">...+'+(a-maxShow)+'</div>';
+          html+='</div></div>';
+          // Row B - orange blocks
+          html+='<div>';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.76rem;font-weight:700;color:#C43A00;margin-bottom:4px">'+
+            (isAdd?'Grupo laranja: '+b+(b>maxShow?' (mostrando '+maxShow+')':''):'− '+b+' blocos')+'</div>';
+          html+='<div style="display:flex;flex-wrap:wrap;gap:3px;padding:6px;background:#FEE8DF;border-radius:10px">';
+          for(var j=0;j<bShow;j++){
+            html+='<div style="width:22px;height:22px;background:var(--laranja);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#fff;font-weight:700">'+(j+1)+'</div>';
+          }
+          if(b>maxShow) html+='<div style="font-size:.75rem;color:var(--cinza);font-weight:700;align-self:center">...+'+(b-maxShow)+'</div>';
+          html+='</div></div>';
+          html+='<div style="text-align:center;font-family:Baloo 2,cursive;font-size:.82rem;font-weight:700;color:var(--azul);margin-top:7px;background:var(--amarelo-cl);border-radius:10px;padding:5px 8px">'+
+            (isAdd?'Azul + Laranja = ?':'Azul − Laranja = ?')+'</div>';
+          html+='</div>';
+          el.innerHTML=html;
+        }
+      };
     }
     case 'visual_mult':{
       var tables=[2,3,5,10];var t=tables[R(0,3)];var n=R(1,8);var ans=t*n;
