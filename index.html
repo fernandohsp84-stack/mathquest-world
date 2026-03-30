@@ -606,6 +606,8 @@ var BASE_PHASES = [
 // ============ ESTADO ============
 var ST = {players:[], currentPlayerId:null, customPhases:[], currentPhaseIdx:0};
 var SESSION = {correct:0, total:0, answered:false, q:null};
+// Tracks used question "fingerprints" per phase per journey to avoid repeats
+var USED_QS = {};  // key: phaseIdx -> Set of question fingerprints
 var aiQs = [];
 
 function save(){try{localStorage.setItem('mqw4',JSON.stringify({players:ST.players,customPhases:ST.customPhases,currentPlayerId:ST.currentPlayerId}));}catch(e){}}
@@ -760,6 +762,8 @@ function showTutorial(){goToScreen('screen-tutorial');}
 
 // ============ RANKING ============
 function showRanking(){
+  // Reload from storage to ensure latest stars are shown
+  load();
   var sorted=ST.players.slice().sort(function(a,b){return totalStars(b)-totalStars(a);});
   var medals=['🥇','🥈','🥉'];
   var el=document.getElementById('ranking-list');
@@ -794,6 +798,8 @@ function openPhase(idx){
 
 function startPhase(){
   SESSION={correct:0,total:0,answered:false,q:null};
+  // Clear used questions for this phase so it's fresh each time
+  USED_QS[ST.currentPhaseIdx] = {};
   var ph=allPhases()[ST.currentPhaseIdx]; var tot=allPhases().length;
   document.getElementById('game-phase-label').textContent=ph.n;
   document.getElementById('phase-nav-label').textContent=(ST.currentPhaseIdx+1)+'/'+tot;
@@ -828,7 +834,16 @@ function mkOpts(correct){
 function loadQuestion(){
   SESSION.answered=false; hideFeedback();
   var ph=allPhases()[ST.currentPhaseIdx];
-  var q = ph.customQuestions ? pickCustomQ(ph.customQuestions) : genQ(ST.currentPhaseIdx, ph.type);
+  var pIdx=ST.currentPhaseIdx;
+  if(!USED_QS[pIdx]) USED_QS[pIdx]={};
+  // Try up to 8 times to get a non-repeated question
+  var q, fingerprint, tries=0;
+  do {
+    q = ph.customQuestions ? pickCustomQ(ph.customQuestions) : genQ(pIdx, ph.type);
+    fingerprint = q.text ? q.text.replace(/\s/g,'') : 'seq';
+    tries++;
+  } while(USED_QS[pIdx][fingerprint] && tries < 8);
+  USED_QS[pIdx][fingerprint] = true;
   SESSION.q=q;
   document.getElementById('q-context').textContent=ph.e+' '+ph.n;
   document.getElementById('q-text').textContent=q.text||'';
@@ -1192,6 +1207,8 @@ function completePhase(){
     if(stars>((p.progressCustom[ph.id]||{}).stars||0)) p.progressCustom[ph.id]={stars:stars,unlocked:true};
   }
   save();
+  // Refresh player list so stars are current everywhere
+  renderPlayerList();
   document.getElementById('badge-stars').textContent=totalStars(p)+' ⭐';
   document.getElementById('complete-stars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
   document.getElementById('complete-title').textContent=ph.n+' concluída!';
