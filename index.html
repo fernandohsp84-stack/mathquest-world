@@ -180,7 +180,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;
 
 /* OPÇÕES — sempre 3, alta visibilidade */
 .options-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-top:11px}
-.option-btn{background:#fff;border:3px solid var(–azul-med);border-radius:var(–radius);padding:14px 6px;font-family:‘Baloo 2’,cursive;font-size:1.25rem;font-weight:800;color:var(–azul);cursor:pointer;transition:all .2s;min-height:68px;width:100%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,58,95,0.12)}
+.option-btn{background:#fff;border:3px solid var(–azul-med);border-radius:var(–radius);padding:12px 6px;font-family:‘Baloo 2’,cursive;font-size:1.1rem;font-weight:800;color:var(–azul);cursor:pointer;transition:all .2s;min-height:68px;width:100%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,58,95,0.12);text-align:center;line-height:1.2}
 .option-btn:hover:not(:disabled):not(.correct):not(.wrong){background:var(–azul-med);color:#fff;border-color:var(–azul-med);transform:translateY(-2px);box-shadow:0 5px 14px rgba(30,58,95,0.2)}
 .option-btn.correct{background:var(–verde)!important;color:#fff!important;border-color:var(–verde)!important;transform:scale(1.05);box-shadow:0 4px 14px rgba(46,158,79,0.4)!important}
 .option-btn.wrong{background:#FFF0CC!important;color:#7A5000!important;border-color:var(–amarelo)!important}
@@ -814,20 +814,50 @@ function updateBar(){
 
 // ============ QUESTÕES ============
 function mkOpts(correct){
-  var used=[correct];
-  var opts=[{val:correct,label:String(correct)}];
-  var tries=0;
-  while(opts.length<3 && tries<80){
-    tries++;
-    var d=R(1,7); var sg=Math.random()>.5?1:-1;
-    var v=Math.max(0,correct+sg*d);
-    if(v!==correct && used.indexOf(v)<0){used.push(v);opts.push({val:v,label:String(v)});}
+  // correct can be number or string (for measure labels)
+  var isNum = typeof correct === 'number';
+  var usedLabels = [String(correct)];
+  var opts = [{val:correct, label:String(correct)}];
+
+  if(isNum){
+    // Generate 2 plausible wrong answers, guaranteed different from correct
+    var deltas = [1,2,3,4,5,6,7,8,10,12,15];
+    // shuffle deltas
+    deltas.sort(function(){return Math.random()-.5;});
+    var signs = [1,-1];
+    for(var di=0; di<deltas.length && opts.length<3; di++){
+      for(var si=0; si<2 && opts.length<3; si++){
+        var v = correct + signs[si] * deltas[di];
+        if(v < 0) v = correct + deltas[di] * (signs[si]*-1); // flip sign if negative
+        var vl = String(v);
+        if(usedLabels.indexOf(vl) < 0 && v >= 0){
+          usedLabels.push(vl);
+          opts.push({val:v, label:vl});
+        }
+      }
+    }
+    // Absolute fallback: just use correct+20 and correct+40
+    var fb = 1;
+    while(opts.length < 3){
+      var vf = correct + fb * 13;
+      var vfl = String(vf);
+      if(usedLabels.indexOf(vfl) < 0){ usedLabels.push(vfl); opts.push({val:vf, label:vfl}); }
+      fb++;
+    }
+  } else {
+    // String options (e.g. measures) - caller provides full opts array
+    // This branch shouldn't be reached for measures since they pass opts directly
+    opts.push({val:'Outro', label:'Outro'});
+    opts.push({val:'Igual', label:'Igual'});
   }
-  var x=1;
-  while(opts.length<3){
-    var v2=correct+x*4; if(used.indexOf(v2)<0){used.push(v2);opts.push({val:v2,label:String(v2)});}
-    x++;
+
+  // Final safety: ensure exactly 3 and all have non-empty labels
+  opts = opts.slice(0,3).filter(function(o){ return o.label && String(o.label).trim() !== ''; });
+  while(opts.length < 3){
+    var emergency = correct + (opts.length * 17);
+    opts.push({val:emergency, label:String(emergency)});
   }
+
   return opts.sort(function(){return Math.random()-.5;});
 }
 
@@ -901,13 +931,26 @@ function renderMCQ(q){
       if(SESSION.answered) return;
       SESSION.answered=true;
       grid.querySelectorAll('.option-btn').forEach(function(b){b.disabled=true;});
-      var isCorrect=String(opt.val)===String(q.answer)||String(opt.label)===String(q.answer);
+      // Compare by numeric value when possible, fallback to string
+      var isCorrect = false;
+      if(typeof q.answer === 'number' && typeof opt.val === 'number'){
+        isCorrect = Math.abs(opt.val - q.answer) < 0.001;
+      } else {
+        isCorrect = String(opt.val)===String(q.answer)||String(opt.label)===String(q.answer);
+      }
       if(isCorrect){
         btn.classList.add('correct'); handleCorrect();
       } else {
         btn.classList.add('wrong');
         grid.querySelectorAll('.option-btn').forEach(function(b){
-          if(String(b.textContent)===String(q.answer)) b.classList.add('correct');
+          var bVal=b.textContent.trim();
+          var isAns=false;
+          if(typeof q.answer==='number'){
+            var parsed=parseFloat(bVal);
+            isAns=!isNaN(parsed)&&Math.abs(parsed-q.answer)<0.001;
+          }
+          if(!isAns) isAns=bVal===String(q.answer);
+          if(isAns) b.classList.add('correct');
         });
         handleWrong();
       }
@@ -1075,11 +1118,38 @@ function genQ(idx, type){
       };
     }
     case 'visual_frac':{
-      var fracs=[{f:'metade',d:2,k:1},{f:'terço',d:3,k:1},{f:'quarto',d:4,k:1}];
-      var fr=fracs[R(0,2)];
-      var nums=[4,6,8,10,12][R(0,4)];var ans=Math.round(nums/fr.d);
-      return{answer:ans,options:mkOpts(ans),
-        text:'Qual é a '+fr.f+' de '+nums+'?',hint:'Veja o círculo: a parte colorida!',
+      // Some fractions result in non-integers - show fractional labels when needed
+      var fracDefs=[
+        {f:'metade',d:2,nums:[2,4,6,8,10,12,14,16,18,20]},
+        {f:'terço', d:3,nums:[3,6,9,12,15,18]},
+        {f:'quarto',d:4,nums:[4,8,12,16,20]}
+      ];
+      var fr=fracDefs[R(0,2)];
+      var nums=fr.nums[R(0,fr.nums.length-1)];
+      var exactAns=nums/fr.d;
+      var isInt=Number.isInteger(exactAns);
+      // Label for correct answer
+      var ansLabel=isInt?String(exactAns):(Math.floor(exactAns)+' e meio');
+      var ansVal=isInt?exactAns:exactAns;
+      // Build 3 options with labels
+      var fracOpts=[];
+      var usedFracLabels=[ansLabel];
+      fracOpts.push({val:ansVal,label:ansLabel});
+      // Generate 2 wrong options as nearby integers with clear labels
+      var wrongs=[exactAns+1, exactAns-1, exactAns+2, exactAns+3, Math.ceil(exactAns)+1];
+      wrongs.sort(function(){return Math.random()-.5;});
+      for(var wi=0;wi<wrongs.length&&fracOpts.length<3;wi++){
+        var wv=wrongs[wi];
+        if(wv>0){
+          var wl=Number.isInteger(wv)?String(wv):(Math.floor(wv)+' e meio');
+          if(usedFracLabels.indexOf(wl)<0){usedFracLabels.push(wl);fracOpts.push({val:wv,label:wl});}
+        }
+      }
+      while(fracOpts.length<3){fracOpts.push({val:exactAns+fracOpts.length*3,label:String(exactAns+fracOpts.length*3)});}
+      fracOpts=fracOpts.sort(function(){return Math.random()-.5;});
+      return{answer:ansVal,options:fracOpts,
+        text:'Qual é a '+fr.f+' de '+nums+'?',
+        hint:isInt?'Veja o círculo e conte a parte colorida!':'O resultado tem "meio" — veja o círculo!',
         visual:function(el){
           var size=90;var cx=45,cy=45,r=36;var total=fr.d;
           var paths='';
