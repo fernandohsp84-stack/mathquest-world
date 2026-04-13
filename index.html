@@ -291,6 +291,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;
 .modal-body{font-size:.86rem;color:#3A5070;line-height:1.6;margin-bottom:16px;font-weight:600}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 
+/* MODE CARDS */
+.mode-card{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#EFF4F8;border-radius:18px;cursor:pointer;border:3px solid transparent;transition:all .2s}
+.mode-card:hover{border-color:#5B9BD5;background:#E3F0FB}
+.mode-card.selected-mode{border-color:#2E9E4F;background:#E8F5E9}
+/* ABOUT SECTIONS */
+.about-section{display:flex;gap:12px;padding:12px 14px;background:#EFF4F8;border-radius:14px;margin-bottom:9px;align-items:flex-start}
+.about-icon{font-size:1.5rem;flex-shrink:0;width:36px;text-align:center;padding-top:1px}
+.about-title{font-family:‘Baloo 2’,cursive;font-weight:800;color:#1E3A5F;font-size:.92rem;margin-bottom:3px}
+.about-text{font-size:.78rem;color:#3A5070;line-height:1.6;font-weight:600}
 /* MISC */
 .star-burst{position:fixed;pointer-events:none;z-index:999;font-size:1.6rem;animation:starFloat 1s ease forwards}
 #btn-map-float{position:fixed;bottom:14px;left:12px;z-index:500;background:var(–azul-med);border:none;border-radius:50px;padding:9px 16px;font-family:‘Baloo 2’,cursive;font-size:.82rem;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(46,95,158,.5);transition:all .15s;display:none;align-items:center;gap:5px}
@@ -319,6 +328,129 @@ body::before{content:'';position:fixed;inset:0;z-index:0;
     <div class="modal-title" id="modal-title"></div>
     <div class="modal-body"  id="modal-body"></div>
     <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<!-- MODO DE JOGO -->
+
+<div id="screen-mode" class="screen">
+  <div style="background:#fff;border-radius:26px;padding:28px 22px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(30,58,95,0.15);animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1)">
+    <div style="text-align:center;font-size:2.6rem;margin-bottom:6px">🎮</div>
+    <h1 style="font-family:'Baloo 2',cursive;font-size:1.6rem;font-weight:800;color:#1E3A5F;text-align:center;margin-bottom:4px">MathQuest World</h1>
+    <p style="text-align:center;color:#607080;font-size:.85rem;margin-bottom:20px;font-weight:600">Escolha como quer jogar!</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+      <div id="mode-gamer-card" class="mode-card selected-mode" onclick="selectMode('gamer')">
+        <div style="font-size:2rem">🏆</div>
+        <div style="flex:1">
+          <div style="font-family:'Baloo 2',cursive;font-weight:800;color:#1E3A5F;font-size:1.05rem">Modo Gamer</div>
+          <div style="font-size:.8rem;color:#607080;font-weight:600;margin-top:2px">Fases em ordem — desbloqueie uma de cada vez. Ideal para aprender progressivamente!</div>
+        </div>
+        <div id="mode-gamer-check" style="font-size:1.4rem">✅</div>
+      </div>
+      <div id="mode-livre-card" class="mode-card" onclick="selectMode('livre')">
+        <div style="font-size:2rem">🗺️</div>
+        <div style="flex:1">
+          <div style="font-family:'Baloo 2',cursive;font-weight:800;color:#1E3A5F;font-size:1.05rem">Modo Livre</div>
+          <div style="font-size:.8rem;color:#607080;font-weight:600;margin-top:2px">Jogue qualquer fase na ordem que quiser. Ótimo para praticar um conteúdo específico!</div>
+        </div>
+        <div id="mode-livre-check" style="font-size:1.4rem;opacity:0">✅</div>
+      </div>
+    </div>
+    <button class="btn btn-green" style="width:100%" onclick="confirmMode()">Confirmar e Jogar! 🚀</button>
+    <div style="margin-top:10px;text-align:center">
+      <button style="background:none;border:none;color:#5B9BD5;font-family:'Baloo 2',cursive;font-size:.85rem;font-weight:700;cursor:pointer" onclick="goToScreen('screen-about')">ℹ️ Saiba mais sobre o MathQuest</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAIBA MAIS -->
+
+<div id="screen-about" class="screen">
+  <div style="background:#fff;border-radius:26px;padding:24px 20px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(30,58,95,0.15);animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1)">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:2.4rem;margin-bottom:6px">🧩</div>
+      <h1 style="font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;color:#1E3A5F;margin-bottom:4px">Saiba Mais</h1>
+      <p style="color:#607080;font-size:.82rem;font-weight:600">Para famílias, educadores e terapeutas</p>
+    </div>
+
+```
+<div class="about-section">
+  <div class="about-icon">🎯</div>
+  <div>
+    <div class="about-title">O que é o MathQuest World?</div>
+    <div class="about-text">Um jogo educativo gratuito de matemática desenvolvido especialmente para crianças autistas entre 8 e 10 anos. Cada fase usa recursos visuais, cores e animações para tornar o aprendizado concreto, previsível e divertido — sem pressão e sem punição por erros.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">🧠</div>
+  <div>
+    <div class="about-title">Por que funciona para autistas?</div>
+    <div class="about-text">Crianças autistas frequentemente aprendem melhor com apoio visual concreto. O MathQuest substitui cálculos abstratos por blocos, balanças, grades e círculos coloridos. Cada fase tem estrutura previsível: início → desafio → recompensa — reduzindo a ansiedade e aumentando a confiança.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">📚</div>
+  <div>
+    <div class="about-title">As 11 fases</div>
+    <div class="about-text">Sequência 1–20 • Adição • Subtração • Cálculo escrito • Multiplicação • Divisão • Frações • Geometria • Medidas • Problemas de texto • Soma de centenas. Cada fase tem apoio visual específico para o conteúdo.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">🎮</div>
+  <div>
+    <div class="about-title">Modos de jogo</div>
+    <div class="about-text"><strong>Modo Gamer:</strong> fases desbloqueadas em sequência — ideal para acompanhamento pedagógico progressivo.<br><strong>Modo Livre:</strong> qualquer fase a qualquer hora — ótimo para praticar um conteúdo específico ou para crianças que já dominam alguns tópicos.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">⭐</div>
+  <div>
+    <div class="about-title">Sistema de estrelas</div>
+    <div class="about-text">Cada fase dá até 3 estrelas. Zero erros = 3 estrelas. Poucos erros = 2 estrelas. Completou = 1 estrela. Sem punição — a criança sempre termina com pelo menos 1 estrela. O ranking motiva de forma positiva entre irmãos ou colegas.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">♿</div>
+  <div>
+    <div class="about-title">Acessibilidade</div>
+    <div class="about-text">Botões grandes (mínimo 60px), fonte ajustável (A− / A+), cores de alto contraste, sons musicais suaves (sem alarmes), feedback visual sem vermelho intenso. Funciona em tablet e celular sem instalar nada.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">🆓</div>
+  <div>
+    <div class="about-title">Gratuito e sem anúncios</div>
+    <div class="about-text">O MathQuest World é 100% gratuito, sem anúncios, sem cadastro e sem coleta de dados. O progresso fica salvo apenas no dispositivo da criança. Desenvolvido por uma família para outras famílias.</div>
+  </div>
+</div>
+
+<div class="about-section">
+  <div class="about-icon">✨</div>
+  <div>
+    <div class="about-title">Criar suas próprias fases</div>
+    <div class="about-text">Pais e educadores podem criar fases personalizadas usando inteligência artificial! Escolha o tema, o nível de dificuldade e a IA gera 8 questões adequadas automaticamente. Ideal para reforçar conteúdos trabalhados na escola.</div>
+  </div>
+</div>
+
+<div style="background:#E8F5E9;border-radius:14px;padding:14px 16px;margin-top:4px;border-left:4px solid #2E9E4F">
+  <div style="font-family:'Baloo 2',cursive;font-weight:700;color:#1B5E20;font-size:.9rem;margin-bottom:4px">💬 Compartilhe com outras famílias!</div>
+  <div style="font-size:.8rem;color:#2E7D32;font-weight:600">Acesse pelo navegador em qualquer dispositivo:<br>
+    <span style="color:#1E3A5F;font-weight:800">fernandohsp84.github.io/mathquest-world/</span><br>
+    Adicione à tela inicial do celular para usar como app!
+  </div>
+</div>
+
+<div class="btn-row" style="margin-top:16px">
+  <button class="btn btn-green" style="flex:1" onclick="goToScreen('screen-mode')">← Voltar</button>
+</div>
+```
+
   </div>
 </div>
 
@@ -370,8 +502,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;
   <h1 class="game-title">MathQuest World</h1>
   <p class="game-subtitle">A aventura matemática do Pixel!</p>
   <div class="world-map" id="world-map"></div>
+  <div id="mode-badge" style="display:flex;align-items:center;gap:6px;background:#fff;border-radius:50px;padding:5px 14px;box-shadow:0 2px 8px rgba(30,58,95,0.12);margin-bottom:4px;cursor:pointer" onclick="goToScreen('screen-mode')">
+    <span id="mode-badge-icon">🏆</span>
+    <span id="mode-badge-label" style="font-family:'Baloo 2',cursive;font-size:.8rem;font-weight:700;color:#1E3A5F">Modo Gamer</span>
+    <span style="font-size:.7rem;color:#5B9BD5;font-weight:700">▶ alterar</span>
+  </div>
   <div class="map-btns">
     <button class="map-icon-btn blue" onclick="goToScreen('screen-create')">✨ Criar Fase</button>
+    <button class="map-icon-btn purple" onclick="goToScreen('screen-about')">ℹ️ Saiba Mais</button>
     <button class="map-icon-btn red" onclick="confirmReset()">🔄 Zerar progresso</button>
   </div>
 </div>
@@ -600,23 +738,27 @@ var BASE_PHASES = [
    goal:'🎯 Olhe as barras e compare!',builtin:true},
   {id:'p10',e:'🏯',n:'Castelo do Código',t:'Problemas mistos',type:'story',
    desc:'O desafio final! Use tudo que aprendeu para libertar o mundo!',
-   goal:'🎯 Leia o problema e resolva!',builtin:true}
+   goal:'🎯 Leia o problema e resolva!',builtin:true},
+  {id:'p11',e:'🏙️',n:'Vila das Centenas',t:'Soma de centenas',type:'visual_hundreds',
+   desc:'Na Vila das Centenas, os prédios são feitos de blocos de 100! Junte os prédios para descobrir o total.',
+   goal:'🎯 Veja os blocos e some as centenas!',builtin:true}
 ];
 
 // ============ ESTADO ============
-var ST = {players:[], currentPlayerId:null, customPhases:[], currentPhaseIdx:0};
+var ST = {players:[], currentPlayerId:null, customPhases:[], currentPhaseIdx:0, gameMode:'gamer'}; // gameMode: 'gamer' | 'livre'
 var SESSION = {correct:0, total:0, answered:false, q:null};
 // Tracks used question "fingerprints" per phase per journey to avoid repeats
 var USED_QS = {};  // key: phaseIdx -> Set of question fingerprints
 var aiQs = [];
 
-function save(){try{localStorage.setItem('mqw4',JSON.stringify({players:ST.players,customPhases:ST.customPhases,currentPlayerId:ST.currentPlayerId}));}catch(e){}}
+function save(){try{localStorage.setItem('mqw4',JSON.stringify({players:ST.players,customPhases:ST.customPhases,currentPlayerId:ST.currentPlayerId,gameMode:ST.gameMode}));}catch(e){}}
 function load(){
   try{
     var d=JSON.parse(localStorage.getItem('mqw4')||'{}');
     if(d.players) ST.players=d.players;
     if(d.customPhases) ST.customPhases=d.customPhases;
     if(d.currentPlayerId) ST.currentPlayerId=d.currentPlayerId;
+    if(d.gameMode) ST.gameMode=d.gameMode;
   }catch(e){}
 }
 function cp(){return ST.players.find(function(p){return p.id===ST.currentPlayerId;});}
@@ -639,7 +781,9 @@ function init(){
   renderPlayerList();
   renderSkinGrid();
   renderCreateScreen();
-  if(cp()) goToMap(); else goToScreen('screen-players');
+  // Restore mode from saved state
+  if(ST.gameMode) selectMode(ST.gameMode);
+  if(cp()) goToMap(); else goToScreen('screen-mode');
 }
 
 // ============ JOGADORES ============
@@ -726,6 +870,11 @@ function goToMap(){
   document.getElementById('badge-stars').textContent=totalStars(p)+' ⭐';
   document.getElementById('map-pixel').innerHTML=heroHTML(skinOf(p));
   renderMap();
+  // Update mode badge
+  var mbIcon=document.getElementById('mode-badge-icon');
+  var mbLabel=document.getElementById('mode-badge-label');
+  if(mbIcon) mbIcon.textContent=ST.gameMode==='gamer'?'🏆':'🗺️';
+  if(mbLabel) mbLabel.textContent=ST.gameMode==='gamer'?'Modo Gamer':'Modo Livre';
   goToScreen('screen-map');
   floatBtn(false);
 }
@@ -742,7 +891,8 @@ function renderMap(){
     var isBase=!!ph.builtin;
     var baseIdx=isBase?BASE_PHASES.findIndex(function(b){return b.id===ph.id;}):null;
     var prog=isBase?(p.progressBase[baseIdx]||{stars:0,unlocked:baseIdx===0}):(p.progressCustom[ph.id]||{stars:0,unlocked:true});
-    var unlocked=!!prog.unlocked;
+    // In 'livre' mode ALL phases are unlocked
+    var unlocked = ST.gameMode==='livre' ? true : !!prog.unlocked;
     var stars=prog.stars||0;
     var completed=stars>=3;
     var isNext=unlocked&&!completed;
@@ -759,6 +909,33 @@ function renderMap(){
 }
 
 function showTutorial(){goToScreen('screen-tutorial');}
+
+function selectMode(mode){
+  ST.gameMode=mode;
+  var gCard=document.getElementById('mode-gamer-card');
+  var lCard=document.getElementById('mode-livre-card');
+  var gCheck=document.getElementById('mode-gamer-check');
+  var lCheck=document.getElementById('mode-livre-check');
+  if(mode==='gamer'){
+    gCard.classList.add('selected-mode'); lCard.classList.remove('selected-mode');
+    gCheck.style.opacity='1'; lCheck.style.opacity='0';
+  } else {
+    lCard.classList.add('selected-mode'); gCard.classList.remove('selected-mode');
+    lCheck.style.opacity='1'; gCheck.style.opacity='0';
+  }
+}
+
+function confirmMode(){
+  save();
+  // Update mode badge
+  var icon=ST.gameMode==='gamer'?'🏆':'🗺️';
+  var label=ST.gameMode==='gamer'?'Modo Gamer':'Modo Livre';
+  var badge=document.getElementById('mode-badge-icon');
+  var blabel=document.getElementById('mode-badge-label');
+  if(badge) badge.textContent=icon;
+  if(blabel) blabel.textContent=label;
+  goToScreen('screen-players');
+}
 
 // ============ RANKING ============
 function showRanking(){
@@ -1225,6 +1402,47 @@ function genQ(idx, type){
       };
     }
     case 'story': return genStory();
+    case 'visual_hundreds':{
+      // Pick two round hundreds to sum
+      var hundredsPool=[[100,200],[200,300],[100,300],[200,200],[100,400],[300,200],[100,100],[200,400],[300,300],[400,100]];
+      var pair=hundredsPool[R(0,hundredsPool.length-1)];
+      var ha=pair[0],hb=pair[1],ans=ha+hb;
+      return{answer:ans,options:mkOpts(ans),
+        text:ha+' + '+hb+' = ?',
+        hint:'Conte os blocos de 100 de cada prédio!',
+        visual:function(el){
+          var blocksA=ha/100, blocksB=hb/100;
+          var colors=['#5B9BD5','#FF6B2B','#2E9E4F','#F5C400','#6B3FA0'];
+          var html='<div style="display:flex;gap:14px;justify-content:center;align-items:flex-end;margin:8px 0;flex-wrap:wrap">';
+          // Building A
+          html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.75rem;font-weight:700;color:var(--azul-med)">Prédio A</div>';
+          html+='<div style="display:flex;flex-direction:column;gap:3px">';
+          for(var i=0;i<blocksA;i++){
+            html+='<div style="width:70px;height:30px;background:linear-gradient(135deg,#5B9BD5,#1E3A5F);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Baloo 2,cursive;font-weight:800;font-size:.85rem;box-shadow:0 2px 4px rgba(30,58,95,0.2)">100</div>';
+          }
+          html+='</div>';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.9rem;font-weight:800;color:var(--azul);margin-top:3px">'+ha+'</div>';
+          html+='</div>';
+          // Plus sign
+          html+='<div style="font-family:Baloo 2,cursive;font-size:1.8rem;font-weight:800;color:var(--azul);margin-bottom:24px">+</div>';
+          // Building B
+          html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.75rem;font-weight:700;color:#C43A00">Prédio B</div>';
+          html+='<div style="display:flex;flex-direction:column;gap:3px">';
+          for(var j=0;j<blocksB;j++){
+            html+='<div style="width:70px;height:30px;background:linear-gradient(135deg,#FF6B2B,#C43A00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Baloo 2,cursive;font-weight:800;font-size:.85rem;box-shadow:0 2px 4px rgba(196,58,0,0.2)">100</div>';
+          }
+          html+='</div>';
+          html+='<div style="font-family:Baloo 2,cursive;font-size:.9rem;font-weight:800;color:#C43A00;margin-top:3px">'+hb+'</div>';
+          html+='</div>';
+          html+='</div>';
+          html+='<div style="text-align:center;font-family:Baloo 2,cursive;font-size:.82rem;font-weight:700;color:var(--azul);background:var(--amarelo-cl);border-radius:10px;padding:5px 8px;margin-top:2px">';
+          html+='Azul ('+blocksA+' blocos) + Laranja ('+blocksB+' blocos) = ? blocos = ?</div>';
+          el.innerHTML=html;
+        }
+      };
+    }
     default:{var a=R(2,10),b=R(1,9);var ans=a+b;return{answer:ans,options:mkOpts(ans),text:a+' + '+b+' = ?',hint:'Some os números.'};}
   }
 }
